@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSWD Authorization Letter Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;1,400&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --navy: #1a2744; --gold: #c9a84c; --gold-light: #e8cc80;
+    --cream: #faf7f0; --parchment: #f2ead8; --ink: #2c2416;
+    --ink-light: #5c4f38; --border: #d4b87a; --white: #ffffff;
+    --red: #8b1a1a; --green: #1a5c2e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--navy); min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; padding: 40px 20px;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(201,168,76,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(201,168,76,0.05) 0%, transparent 60%);
+  }
+
+  /* HEADER */
+  .portal-header { text-align: center; margin-bottom: 24px; animation: fadeDown 0.7s ease both; }
+  .portal-header .seal {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 14px; font-size: 28px;
+    box-shadow: 0 4px 24px rgba(201,168,76,0.35);
+  }
+  .portal-header h1 {
+    font-family: 'Playfair Display', serif; font-size: 1.7rem;
+    color: var(--gold-light); letter-spacing: 0.04em; font-weight: 700;
+  }
+  .portal-header p { color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-top: 6px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* LANGUAGE SWITCHER */
+  .lang-switcher {
+    display: flex; gap: 0; margin-bottom: 18px;
+    border: 1px solid rgba(201,168,76,0.35); border-radius: 5px; overflow: hidden;
+    animation: fadeDown 0.7s ease 0.05s both;
+  }
+  .lang-btn {
+    padding: 9px 22px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.55);
+    border: none; font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; cursor: pointer; transition: all 0.18s;
+    border-right: 1px solid rgba(201,168,76,0.2);
+  }
+  .lang-btn:last-child { border-right: none; }
+  .lang-btn:hover { background: rgba(201,168,76,0.14); color: var(--gold-light); }
+  .lang-btn.active {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--navy); font-weight: 700;
+  }
+  .lang-flag { margin-right: 5px; }
+
+  /* DRAFTS BAR */
+  .drafts-bar { width: 100%; max-width: 600px; margin-bottom: 14px; animation: fadeDown 0.7s ease 0.1s both; }
+  .drafts-bar summary {
+    cursor: pointer; background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(201,168,76,0.25); border-radius: 4px;
+    padding: 10px 18px; color: var(--gold-light); font-size: 0.82rem;
+    font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    list-style: none; display: flex; align-items: center; gap: 8px; user-select: none;
+  }
+  .drafts-bar summary::-webkit-details-marker { display: none; }
+  .drafts-bar summary::before { content: '💾'; font-size: 1rem; }
+  .drafts-list {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(201,168,76,0.18);
+    border-top: none; border-radius: 0 0 4px 4px; padding: 10px; max-height: 220px; overflow-y: auto;
+  }
+  .draft-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 8px 10px; border-radius: 3px; cursor: pointer; transition: background 0.15s;
+  }
+  .draft-item:hover { background: rgba(201,168,76,0.12); }
+  .draft-item .draft-name { color: var(--cream); font-size: 0.88rem; font-weight: 500; flex: 1; }
+  .draft-item .draft-meta { color: rgba(255,255,255,0.4); font-size: 0.75rem; white-space: nowrap; }
+  .draft-item .draft-del {
+    color: rgba(255,100,100,0.7); font-size: 0.8rem; cursor: pointer;
+    padding: 2px 6px; border-radius: 2px; border: none; background: transparent; transition: color 0.15s;
+  }
+  .draft-item .draft-del:hover { color: #ff6464; }
+  .no-drafts { color: rgba(255,255,255,0.35); font-size: 0.82rem; text-align: center; padding: 12px; }
+
+  /* INPUT CARD */
+  .input-card {
+    background: var(--cream); border-radius: 4px; padding: 44px 48px;
+    width: 100%; max-width: 600px; border: 1px solid var(--border);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(201,168,76,0.1);
+    animation: fadeUp 0.7s ease 0.2s both; position: relative; overflow: hidden;
+  }
+  .input-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+  }
+  .input-card h2 { font-family: 'Playfair Display', serif; color: var(--navy); font-size: 1.25rem; margin-bottom: 6px; font-weight: 600; }
+  .input-card .subtitle { color: var(--ink-light); font-size: 0.82rem; margin-bottom: 32px; letter-spacing: 0.03em; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+  .section-label {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--navy);
+    background: var(--parchment); border-left: 3px solid var(--gold);
+    padding: 6px 12px; margin-bottom: 18px; margin-top: 6px; border-radius: 0 2px 2px 0;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; margin-bottom: 18px; }
+  label { font-size: 0.72rem; font-weight: 600; color: var(--navy); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 7px; }
+  input, textarea {
+    font-family: 'Source Sans 3', sans-serif; font-size: 0.95rem; color: var(--ink);
+    background: var(--white); border: 1.5px solid #d4c9aa; border-radius: 3px;
+    padding: 10px 14px; transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+  }
+  input:focus, textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+  textarea { resize: vertical; min-height: 80px; }
+  .btn-row { display: flex; gap: 12px; margin-top: 10px; }
+  .generate-btn {
+    flex: 1; padding: 14px;
+    background: linear-gradient(135deg, var(--navy), #253660);
+    color: var(--gold-light); border: none; border-radius: 3px;
+    font-family: 'Source Sans 3', sans-serif; font-size: 0.9rem; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
+    transition: all 0.2s; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .generate-btn:hover { background: linear-gradient(135deg, #253660, #2f4580); box-shadow: 0 6px 24px rgba(0,0,0,0.3); transform: translateY(-1px); }
+  .generate-btn:active { transform: translateY(0); }
+  .save-btn {
+    padding: 14px 20px; background: linear-gradient(135deg, #1a5c2e, #236b38);
+    color: #a8f0b8; border: none; border-radius: 3px;
+    font-family: 'Source Sans 3', sans-serif; font-size: 0.82rem; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer;
+    transition: all 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); white-space: nowrap;
+  }
+  .save-btn:hover { background: linear-gradient(135deg, #236b38, #2a7d42); transform: translateY(-1px); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #1a5c2e; color: #a8f0b8; padding: 12px 24px; border-radius: 4px;
+    font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35); transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0; z-index: 9999;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* LETTER VIEW */
+  .letter-view { display: none; width: 100%; max-width: 720px; animation: fadeUp 0.5s ease both; }
+  .letter-actions { display: flex; gap: 12px; justify-content: flex-end; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+  .lang-badge {
+    background: rgba(201,168,76,0.18); color: var(--gold-light);
+    border: 1px solid rgba(201,168,76,0.3); border-radius: 20px;
+    padding: 5px 14px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.07em;
+    text-transform: uppercase; margin-right: auto;
+  }
+  .btn {
+    padding: 10px 22px; border-radius: 3px; font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.82rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s; border: none;
+  }
+  .btn-back { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.75); border: 1px solid rgba(255,255,255,0.2); }
+  .btn-back:hover { background: rgba(255,255,255,0.2); }
+  .btn-print { background: linear-gradient(135deg, var(--gold), var(--gold-light)); color: var(--navy); }
+  .btn-print:hover { box-shadow: 0 4px 18px rgba(201,168,76,0.45); transform: translateY(-1px); }
+
+  /* LETTER PAPER */
+  .letter-paper {
+    background: var(--white); border: 1px solid #d0ccc4;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5); padding: 72px 80px; position: relative;
+  }
+  .letter-paper::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+    background: linear-gradient(90deg, var(--navy), #2f4580, var(--navy));
+  }
+  .letter-header-block { text-align: center; margin-bottom: 36px; padding-bottom: 24px; border-bottom: 2px solid var(--navy); }
+  .republic-text { font-family: 'Source Sans 3', sans-serif; font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 2px; }
+  .dswd-title { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--navy); letter-spacing: 0.05em; margin-bottom: 2px; }
+  .dswd-sub { font-size: 0.72rem; color: var(--ink-light); letter-spacing: 0.04em; }
+  .custom-heading { font-family: 'Playfair Display', serif; font-size: 0.85rem; font-weight: 600; color: var(--navy); letter-spacing: 0.06em; margin-top: 4px; font-style: italic; }
+  .letter-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--navy); text-align: center; letter-spacing: 0.12em; text-decoration: underline; text-underline-offset: 5px; margin-bottom: 32px; text-transform: uppercase; }
+  .letter-date { font-family: 'Lora', serif; font-size: 0.95rem; color: var(--ink); margin-bottom: 24px; }
+  .letter-body { font-family: 'Lora', serif; font-size: 0.97rem; color: var(--ink); line-height: 1.95; text-align: justify; margin-bottom: 18px; }
+  .letter-body strong { font-weight: 700; color: var(--navy); }
+  .letter-closing { font-family: 'Lora', serif; font-size: 0.97rem; color: var(--ink); margin-top: 28px; margin-bottom: 48px; line-height: 1.8; }
+
+  /* SIG + QR */
+  .sig-qr-row { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 12px; }
+  .sig-line { display: inline-block; width: 260px; border-bottom: 1.5px solid var(--ink); margin-bottom: 6px; }
+  .sig-name { font-family: 'Lora', serif; font-size: 0.97rem; font-weight: 700; color: var(--ink); letter-spacing: 0.01em; }
+  .sig-role { font-family: 'Source Sans 3', sans-serif; font-size: 0.78rem; color: var(--ink-light); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 2px; }
+  .qr-block { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .qr-block #qrcode canvas, .qr-block #qrcode img { width: 90px !important; height: 90px !important; }
+  .qr-label { font-family: 'Source Sans 3', sans-serif; font-size: 0.62rem; color: var(--ink-light); letter-spacing: 0.07em; text-transform: uppercase; text-align: center; }
+
+  /* PRINT */
+  @media print {
+    body { background: white; padding: 0; display: block; }
+    .portal-header, .input-card, .letter-actions, .drafts-bar, .toast, .lang-switcher { display: none !important; }
+    .letter-view { display: block !important; max-width: 100%; }
+    .letter-paper { box-shadow: none; border: none; padding: 48px 64px; }
+    .letter-paper::before { display: none; }
+  }
+
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp   { from { opacity: 0; transform: translateY(20px); }  to { opacity: 1; transform: translateY(0); } }
+  .required { color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="portal-header">
+  <div class="seal">📜</div>
+  <h1>Authorization Letter Portal</h1>
+  <p>Department of Social Welfare and Development · DSWD</p>
+</div>
+
+<!-- Language Switcher -->
+<div class="lang-switcher">
+  <button class="lang-btn active" onclick="setLang('ceb')" id="btnCeb"><span class="lang-flag">🇵🇭</span> Cebuano</button>
+  <button class="lang-btn" onclick="setLang('tgl')" id="btnTgl"><span class="lang-flag">🇵🇭</span> Tagalog</button>
+  <button class="lang-btn" onclick="setLang('eng')" id="btnEng"><span class="lang-flag">🇺🇸</span> English</button>
+</div>
+
+<!-- Saved Drafts -->
+<details class="drafts-bar" id="draftsBar">
+  <summary>Saved Drafts</summary>
+  <div class="drafts-list" id="draftsList"></div>
+</details>
+
+<!-- INPUT FORM -->
+<div class="input-card" id="inputSection">
+  <h2>Fill in the Information</h2>
+  <p class="subtitle" id="formSubtitle">Fill in all required fields to generate the authorization letter.</p>
+
+  <div class="section-label">📋 Letter Heading</div>
+  <div class="form-row full">
+    <div class="field">
+      <label>Organization / Office Name <span class="required">*</span></label>
+      <input type="text" id="fieldOrgName" value="RESIDENT OF BARANGAY LUMBO">
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label>Sub-heading / Address Line</label>
+      <input type="text" id="fieldOrgSub" value="Municipality of Lagonglong Misamis Oriental">
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label>Additional Heading Line (optional)</label>
+      <input type="text" id="fieldOrgExtra" placeholder="e.g. Barangay Captain's Office">
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:10px;">📝 Letter Details</div>
+  <div class="form-row">
+    <div class="field">
+      <label>Date <span class="required">*</span></label>
+      <input type="date" id="fieldDate" required>
+    </div>
+    <div class="field" style="visibility:hidden"></div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label id="lbl_ben">Name of Beneficiary <span class="required">*</span></label>
+      <input type="text" id="fieldBeneficiary" placeholder="e.g. Clarencio T. Hinacay" required>
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label id="lbl_addr">Address of Beneficiary <span class="required">*</span></label>
+      <input type="text" id="fieldAddress" placeholder="e.g. Zone 4, Lumbo, Lagonglong, Misamis Oriental">
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label id="lbl_claim">Name of Claimant / Representative <span class="required">*</span></label>
+      <input type="text" id="fieldClaimant" placeholder="e.g. Flor C. Hinacay">
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label id="lbl_rel">Relation to Beneficiary <span class="required">*</span></label>
+      <input type="text" id="fieldRelation" placeholder="e.g. son/daughter, spouse, etc.">
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label id="lbl_reason">Reason for Absence <span class="required">*</span></label>
+      <textarea id="fieldReason" placeholder="e.g. I cannot personally claim due to work obligations."></textarea>
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label id="lbl_aid">Type of Aid / Assistance <span class="required">*</span></label>
+      <input type="text" id="fieldAid" value="rice assistance from the Department of Social Welfare and Development (DSWD)">
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="save-btn" onclick="saveDraft()">💾 Save</button>
+    <button class="generate-btn" onclick="generateLetter()">⬇ Generate Letter</button>
+  </div>
+</div>
+
+<!-- LETTER VIEW -->
+<div class="letter-view" id="letterSection">
+  <div class="letter-actions">
+    <span class="lang-badge" id="letterLangBadge">🇵🇭 Cebuano</span>
+    <button class="btn btn-back" onclick="goBack()">← Back / Edit</button>
+    <button class="btn btn-print" onclick="window.print()">🖨 Print Letter</button>
+  </div>
+  <div class="letter-paper">
+    <div class="letter-header-block">
+      <div class="republic-text">Republic of the Philippines</div>
+      <div class="dswd-title" id="outOrgName"></div>
+      <div class="dswd-sub" id="outOrgSub"></div>
+      <div class="custom-heading" id="outOrgExtra"></div>
+    </div>
+    <div class="letter-title" id="outLetterTitle">Authorization Letter</div>
+    <p class="letter-date"><span id="outDateLabel">Date:</span> <span id="outDate"></span></p>
+    <p class="letter-body" id="outPara1"></p>
+    <p class="letter-body" id="outPara2"></p>
+    <p class="letter-body" id="outPara3"></p>
+    <p class="letter-closing" id="outClosing"></p>
+    <div class="sig-qr-row">
+      <div class="signature-block">
+        <div class="sig-line"></div>
+        <div class="sig-name" id="outBeneficiarySig"></div>
+        <div class="sig-role" id="outSigRole">Beneficiary</div>
+      </div>
+      <div class="qr-block">
+        <div id="qrcode"></div>
+        <div class="qr-label">Scan to Verify</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Language templates ─────────────────────────────────────────────────────
+const LANGS = {
+  ceb: {
+    flag: '🇵🇭', name: 'Cebuano',
+    formTitle: 'Pun-a ang Impormasyon',
+    subtitle: 'Pun-a ang tanan nga gikinahanglan nga mga field aron makagama og sulat pagtugot.',
+    lbl_ben: 'Ngalan sa Benepisyaryo',
+    lbl_addr: 'Adres sa Benepisyaryo',
+    lbl_claim: 'Ngalan sa Kinatawan / Claimant',
+    lbl_rel: 'Relasyon ngadto sa Benepisyaryo',
+    lbl_reason: 'Rason sa Pagkawala',
+    lbl_aid: 'Klase sa Tabang / Hinabang',
+    aidDefault: 'hinabang nga bugas gikan sa Department of Social Welfare and Development (DSWD)',
+    reasonPlaceholder: 'Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho.',
+    letterTitle: 'Authorization Letter',
+    dateLabel: 'Date:',
+    para1: (d) => `Ako, si <strong>${d.beneficiary}</strong>, anaa sa saktong pangidaron ug nagpuyo sa <strong>${d.address}</strong>, naghatag og pagtugot sa akong <strong>${d.relation}</strong> nga si <strong>${d.claimant}</strong>, sa pagkuha ug pagdawat alang kanako sa <strong>${d.aid}</strong>.`,
+    para2: (d) => `${d.reason.endsWith('.') ? d.reason : d.reason + '.'} Busa, gihatagan nako siya og tibuok nga katungod aron modawat sa maong hinabang ug mopirma sa bisan unsa nga kinahanglanon nga mga dokumento labot sa pagkuha niini.`,
+    para3: () => `Alang sa pagmatuod, naglakip ko og kopya sa akong valid ID kauban niining sulat pagtugot.`,
+    closing: 'Daghang salamat sa inyong konsiderasyon.',
+    sigRole: 'Benepisyaryo',
+  },
+  tgl: {
+    flag: '🇵🇭', name: 'Tagalog',
+    formTitle: 'Punan ang Impormasyon',
+    subtitle: 'Punan ang lahat ng kinakailangang fields upang makabuo ng sulat ng pahintulot.',
+    lbl_ben: 'Pangalan ng Benepisyaryo',
+    lbl_addr: 'Tirahan ng Benepisyaryo',
+    lbl_claim: 'Pangalan ng Kinatawan / Claimant',
+    lbl_rel: 'Relasyon sa Benepisyaryo',
+    lbl_reason: 'Dahilan ng Kawalan',
+    lbl_aid: 'Uri ng Tulong / Ayuda',
+    aidDefault: 'tulong na bigas mula sa Department of Social Welfare and Development (DSWD)',
+    reasonPlaceholder: 'Hindi ko personal na makuha ang nasabing tulong dahil sa aking mga obligasyon sa trabaho.',
+    letterTitle: 'Sulat ng Pahintulot',
+    dateLabel: 'Petsa:',
+    para1: (d) => `Ako, si <strong>${d.beneficiary}</strong>, na nasa wastong pag-iisip at naninirahan sa <strong>${d.address}</strong>, ay nagbibigay ng pahintulot sa aking <strong>${d.relation}</strong> na si <strong>${d.claimant}</strong>, na kumuha at tumanggap sa aking ngalan ng <strong>${d.aid}</strong>.`,
+    para2: (d) => `${d.reason.endsWith('.') ? d.reason : d.reason + '.'} Kaya naman, binibigyan ko siya ng buong karapatang tumanggap ng nasabing tulong at pumirma sa anumang kinakailangang dokumento kaugnay ng pagkuha nito.`,
+    para3: () => `Bilang patunay, naglakip ako ng kopya ng aking valid ID kasama ang sulat ng pahintulot na ito.`,
+    closing: 'Maraming salamat sa inyong pagsasaalang-alang.',
+    sigRole: 'Benepisyaryo',
+  },
+  eng: {
+    flag: '🇺🇸', name: 'English',
+    formTitle: 'Fill in the Information',
+    subtitle: 'Fill in all required fields to generate the authorization letter.',
+    lbl_ben: 'Name of Beneficiary',
+    lbl_addr: 'Address of Beneficiary',
+    lbl_claim: 'Name of Claimant / Representative',
+    lbl_rel: 'Relation to Beneficiary',
+    lbl_reason: 'Reason for Absence',
+    lbl_aid: 'Type of Aid / Assistance',
+    aidDefault: 'rice assistance from the Department of Social Welfare and Development (DSWD)',
+    reasonPlaceholder: 'I cannot personally claim the said assistance due to my work obligations.',
+    letterTitle: 'Authorization Letter',
+    dateLabel: 'Date:',
+    para1: (d) => `I, <strong>${d.beneficiary}</strong>, of legal age and residing at <strong>${d.address}</strong>, hereby authorize my <strong>${d.relation}</strong>, <strong>${d.claimant}</strong>, to claim and receive on my behalf the <strong>${d.aid}</strong>.`,
+    para2: (d) => `${d.reason.endsWith('.') ? d.reason : d.reason + '.'} Therefore, I grant him/her full authority to receive the said assistance and to sign any required documents related to its release.`,
+    para3: () => `As proof of identity, I have attached a copy of my valid government-issued ID together with this authorization letter.`,
+    closing: 'Thank you very much for your kind consideration.',
+    sigRole: 'Beneficiary',
+  }
+};
+
+let currentLang = 'ceb';
+
+function setLang(lang) {
+  currentLang = lang;
+  const L = LANGS[lang];
+
+  // Update switcher buttons
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btnCeb').classList.toggle('active', lang === 'ceb');
+  document.getElementById('btnTgl').classList.toggle('active', lang === 'tgl');
+  document.getElementById('btnEng').classList.toggle('active', lang === 'eng');
+
+  // Update form labels
+  document.querySelector('.input-card h2').textContent = L.formTitle;
+  document.getElementById('formSubtitle').textContent  = L.subtitle;
+
+  const setLabel = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = text + ' <span class="required">*</span>';
+  };
+  setLabel('lbl_ben',    L.lbl_ben);
+  setLabel('lbl_addr',   L.lbl_addr);
+  setLabel('lbl_claim',  L.lbl_claim);
+  setLabel('lbl_rel',    L.lbl_rel);
+  setLabel('lbl_reason', L.lbl_reason);
+  setLabel('lbl_aid',    L.lbl_aid);
+
+  document.getElementById('fieldReason').placeholder = L.reasonPlaceholder;
+
+  // Only reset aid field if it still matches one of the defaults
+  const aidField = document.getElementById('fieldAid');
+  const defaults = Object.values(LANGS).map(l => l.aidDefault);
+  if (defaults.includes(aidField.value.trim()) || aidField.value.trim() === '') {
+    aidField.value = L.aidDefault;
+  }
+
+  showToast(`${L.flag} Switched to ${L.name}`);
+}
+
+// ── Date pre-fill ──────────────────────────────────────────────────────────
+const today = new Date();
+document.getElementById('fieldDate').value =
+  `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ── Collect fields ─────────────────────────────────────────────────────────
+function collectFields() {
+  return {
+    lang        : currentLang,
+    orgName     : document.getElementById('fieldOrgName').value.trim(),
+    orgSub      : document.getElementById('fieldOrgSub').value.trim(),
+    orgExtra    : document.getElementById('fieldOrgExtra').value.trim(),
+    date        : document.getElementById('fieldDate').value,
+    beneficiary : document.getElementById('fieldBeneficiary').value.trim(),
+    address     : document.getElementById('fieldAddress').value.trim(),
+    claimant    : document.getElementById('fieldClaimant').value.trim(),
+    relation    : document.getElementById('fieldRelation').value.trim(),
+    reason      : document.getElementById('fieldReason').value.trim(),
+    aid         : document.getElementById('fieldAid').value.trim(),
+  };
+}
+
+function restoreFields(data) {
+  if (data.lang) { currentLang = data.lang; setLang(data.lang); }
+  document.getElementById('fieldOrgName').value    = data.orgName     || '';
+  document.getElementById('fieldOrgSub').value     = data.orgSub      || '';
+  document.getElementById('fieldOrgExtra').value   = data.orgExtra    || '';
+  document.getElementById('fieldDate').value       = data.date        || '';
+  document.getElementById('fieldBeneficiary').value= data.beneficiary || '';
+  document.getElementById('fieldAddress').value    = data.address     || '';
+  document.getElementById('fieldClaimant').value   = data.claimant    || '';
+  document.getElementById('fieldRelation').value   = data.relation    || '';
+  document.getElementById('fieldReason').value     = data.reason      || '';
+  document.getElementById('fieldAid').value        = data.aid         || '';
+}
+
+// ── LocalStorage ───────────────────────────────────────────────────────────
+const LS_KEY = 'dswd_auth_drafts';
+function loadDrafts() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e) { return []; } }
+function storeDrafts(d) { localStorage.setItem(LS_KEY, JSON.stringify(d)); }
+
+function saveDraft() {
+  const data = collectFields();
+  if (!data.beneficiary) { showToast('⚠️ Enter beneficiary name first.'); return; }
+  const drafts = loadDrafts();
+  const id = Date.now();
+  const langName = LANGS[data.lang || 'ceb'].name;
+  const label = data.beneficiary + ' · ' + langName + (data.date ? ' · ' + formatDate(data.date) : '');
+  drafts.unshift({ id, label, saved: new Date().toLocaleDateString(), data });
+  storeDrafts(drafts);
+  renderDrafts();
+  showToast('✅ Draft saved: ' + data.beneficiary);
+}
+
+function deleteDraft(id) {
+  storeDrafts(loadDrafts().filter(d => d.id !== id));
+  renderDrafts();
+  showToast('🗑 Draft deleted.');
+}
+
+function loadDraft(id) {
+  const draft = loadDrafts().find(d => d.id === id);
+  if (draft) {
+    restoreFields(draft.data);
+    document.getElementById('draftsBar').removeAttribute('open');
+    showToast('📂 Draft loaded: ' + draft.data.beneficiary);
+  }
+}
+
+function renderDrafts() {
+  const list = document.getElementById('draftsList');
+  const drafts = loadDrafts();
+  if (!drafts.length) { list.innerHTML = '<div class="no-drafts">No saved drafts yet.</div>'; return; }
+  list.innerHTML = drafts.map(d => `
+    <div class="draft-item" onclick="loadDraft(${d.id})">
+      <span class="draft-name">📄 ${d.label}</span>
+      <span class="draft-meta">${d.saved}</span>
+      <button class="draft-del" onclick="event.stopPropagation();deleteDraft(${d.id})" title="Delete">✕</button>
+    </div>
+  `).join('');
+}
+
+renderDrafts();
+
+// ── QR ─────────────────────────────────────────────────────────────────────
+function buildQRText(d) {
+  return ['AUTHORIZATION LETTER', 'Beneficiary: '+d.beneficiary, 'Address: '+d.address,
+    'Claimant: '+d.claimant+' ('+d.relation+')', 'Aid: '+d.aid,
+    'Date: '+formatDate(d.date), 'Language: '+(LANGS[d.lang]||LANGS.ceb).name].join('\n');
+}
+
+function generateQR(text) {
+  const el = document.getElementById('qrcode');
+  el.innerHTML = '';
+  new QRCode(el, { text, width:90, height:90, colorDark:'#1a2744', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+}
+
+// ── Generate Letter ────────────────────────────────────────────────────────
+function generateLetter() {
+  const d = collectFields();
+  if (!d.date || !d.beneficiary || !d.address || !d.claimant || !d.relation || !d.reason || !d.aid) {
+    alert('Please fill in all required fields before generating the letter.');
+    return;
+  }
+
+  const L = LANGS[d.lang] || LANGS.ceb;
+
+  // Header
+  document.getElementById('outOrgName').textContent = d.orgName || 'RESIDENT OF BARANGAY LUMBO';
+  document.getElementById('outOrgSub').textContent  = d.orgSub  || '';
+  const extraEl = document.getElementById('outOrgExtra');
+  extraEl.textContent = d.orgExtra;
+  extraEl.style.display = d.orgExtra ? 'block' : 'none';
+
+  // Title & date label
+  document.getElementById('outLetterTitle').textContent = L.letterTitle;
+  document.getElementById('outDateLabel').textContent   = L.dateLabel;
+  document.getElementById('outDate').textContent        = formatDate(d.date);
+
+  // Body paragraphs (HTML for bold names)
+  document.getElementById('outPara1').innerHTML = L.para1(d);
+  document.getElementById('outPara2').innerHTML = L.para2(d);
+  document.getElementById('outPara3').innerHTML = L.para3(d);
+  document.getElementById('outClosing').textContent     = L.closing;
+
+  // Sig
+  document.getElementById('outBeneficiarySig').textContent = d.beneficiary;
+  document.getElementById('outSigRole').textContent        = L.sigRole;
+
+  // Lang badge
+  document.getElementById('letterLangBadge').textContent = L.flag + ' ' + L.name;
+
+  // QR
+  generateQR(buildQRText(d));
+
+  // Switch views
+  document.getElementById('inputSection').style.display  = 'none';
+  document.getElementById('draftsBar').style.display     = 'none';
+  document.querySelector('.portal-header').style.display = 'none';
+  document.querySelector('.lang-switcher').style.display = 'none';
+  document.getElementById('letterSection').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goBack() {
+  document.getElementById('letterSection').style.display = 'none';
+  document.getElementById('inputSection').style.display  = 'block';
+  document.getElementById('draftsBar').style.display     = 'block';
+  document.querySelector('.portal-header').style.display = 'block';
+  document.querySelector('.lang-switcher').style.display = 'flex';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Init default lang UI
+setLang('ceb');
+</script>
+</body>
+</html>
