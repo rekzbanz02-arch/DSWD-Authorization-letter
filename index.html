@@ -238,6 +238,36 @@
   @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes fadeUp   { from { opacity: 0; transform: translateY(20px); }  to { opacity: 1; transform: translateY(0); } }
   .required { color: var(--red); }
+
+  /* ── JSONBin fast-input combo boxes ─────────────────────────────────────── */
+  .combo-wrap { position: relative; width: 100%; }
+  .combo-wrap input { width: 100%; }
+  .combo-options {
+    position: absolute; z-index: 2000; left: 0; right: 0; top: calc(100% + 4px);
+    background: var(--white); border: 1px solid var(--border); border-radius: 4px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.18); max-height: 220px; overflow-y: auto;
+    display: none;
+  }
+  .combo-options.open { display: block; }
+  .combo-option {
+    padding: 9px 12px; cursor: pointer; border-bottom: 1px solid #eee6d5;
+    color: var(--ink); font-size: 0.88rem; line-height: 1.35;
+  }
+  .combo-option:last-child { border-bottom: none; }
+  .combo-option:hover, .combo-option.active {
+    background: var(--parchment); color: var(--navy);
+  }
+  .combo-option .combo-main { font-weight: 600; }
+  .combo-option .combo-meta { display: block; margin-top: 2px; color: var(--ink-light); font-size: 0.72rem; }
+  .combo-empty { padding: 10px 12px; color: var(--ink-light); font-size: 0.8rem; }
+  .combo-badge {
+    display: inline-block; margin-left: 6px; font-size: 0.64rem; padding: 2px 5px;
+    border-radius: 10px; background: rgba(201,168,76,0.18); color: var(--navy);
+    vertical-align: middle; letter-spacing: 0.03em;
+  }
+  @media (max-width: 640px) {
+    .combo-options { max-height: 180px; }
+  }
 </style>
 </head>
 <body>
@@ -286,56 +316,83 @@
   <div class="form-row full">
     <div class="field">
       <label id="lbl_ben">Name of Beneficiary <span class="required">*</span></label>
-      <input type="text" id="fieldBeneficiary" placeholder="e.g. Juan dela Cruz" required>
+      <div class="combo-wrap">
+        <input type="text" id="fieldBeneficiary" placeholder="e.g. Juan dela Cruz" autocomplete="off" required>
+        <div class="combo-options" id="optionsBeneficiary"></div>
+      </div>
     </div>
   </div>
   <div class="form-row full">
     <div class="field">
       <label id="lbl_addr">Address of Beneficiary <span class="required">*</span></label>
-      <input type="text" id="fieldAddress" placeholder="e.g. Zone 4, Lumbo, Lagonglong, Misamis Oriental">
+      <div class="combo-wrap">
+        <input type="text" id="fieldAddress" placeholder="e.g. Zone 4, Lumbo, Lagonglong, Misamis Oriental" autocomplete="off">
+        <div class="combo-options" id="optionsAddress"></div>
+      </div>
     </div>
   </div>
   <div class="form-row full">
     <div class="field">
       <label id="lbl_claim">Name of Claimant / Representative <span class="required">*</span></label>
-      <input type="text" id="fieldClaimant" placeholder="e.g. Juana Dela Cruz">
+      <div class="combo-wrap">
+        <input type="text" id="fieldClaimant" placeholder="e.g. Juana Dela Cruz" autocomplete="off">
+        <div class="combo-options" id="optionsClaimant"></div>
+      </div>
     </div>
   </div>
   <div class="form-row full">
     <div class="field">
       <label id="lbl_rel">Relation to Beneficiary <span class="required">*</span></label>
-      <input type="text" id="fieldRelation" placeholder="e.g. son/daughter, spouse, etc.">
+      <div class="combo-wrap">
+        <input type="text" id="fieldRelation" placeholder="e.g. son/daughter, spouse, etc." autocomplete="off">
+        <div class="combo-options" id="optionsRelation"></div>
+      </div>
     </div>
   </div>
   <div class="form-row full">
     <div class="field">
       <label id="lbl_reason">Reason for Absence <span class="required">*</span></label>
-      <input type="text" id="fieldReason" value="Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho.">
+      <div class="combo-wrap">
+        <input type="text" id="fieldReason" value="Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho." autocomplete="off">
+        <div class="combo-options" id="optionsReason"></div>
+      </div>
     </div>
   </div>
   <div class="form-row full">
     <div class="field">
       <label id="lbl_aid">Type of Aid / Assistance <span class="required">*</span></label>
-      <input type="text" id="fieldAid" value="hinabang nga bugas gikan sa &quot;Bawat Bayan Makikinabang&quot; government program">
+      <div class="combo-wrap">
+        <input type="text" id="fieldAid" value="hinabang nga bugas gikan sa &quot;Bawat Bayan Makikinabang&quot; government program" autocomplete="off">
+        <div class="combo-options" id="optionsAid"></div>
+      </div>
     </div>
   </div>
   <div class="section-label">📋 Letter Heading</div>
   <div class="form-row full">
     <div class="field">
       <label>Organization / Office Name <span class="required">*</span></label>
-      <input type="text" id="fieldOrgName" value="RESIDENT OF BARANGAY LUMBO">
+      <div class="combo-wrap">
+        <input type="text" id="fieldOrgName" value="RESIDENT OF BARANGAY LUMBO" autocomplete="off">
+        <div class="combo-options" id="optionsOrgName"></div>
+      </div>
     </div>
   </div>
   <div class="form-row full">
     <div class="field">
       <label>Sub-heading / Address Line</label>
-      <input type="text" id="fieldOrgSub" value="Municipality of Lagonglong Misamis Oriental">
+      <div class="combo-wrap">
+        <input type="text" id="fieldOrgSub" value="Municipality of Lagonglong Misamis Oriental" autocomplete="off">
+        <div class="combo-options" id="optionsOrgSub"></div>
+      </div>
     </div>
   </div>
   <div class="form-row full">
     <div class="field">
       <label>Additional Heading Line (optional)</label>
-      <input type="text" id="fieldOrgExtra" placeholder="e.g. Barangay Captain's Office">
+      <div class="combo-wrap">
+        <input type="text" id="fieldOrgExtra" placeholder="e.g. Barangay Captain's Office" autocomplete="off">
+        <div class="combo-options" id="optionsOrgExtra"></div>
+      </div>
     </div>
   </div>
   <div class="btn-row">
@@ -412,6 +469,134 @@ function normalizeBinPayload(payload) {
   if (Array.isArray(payload)) return payload;
   if (payload && Array.isArray(payload.issuances)) return payload.issuances;
   return [];
+}
+
+function normalizeSuggestedValue(value) {
+  return String(value ?? '').trim();
+}
+
+function uniqueNonEmptyValues(items, field) {
+  const seen = new Map();
+  items.forEach(item => {
+    const value = normalizeSuggestedValue(item?.[field]);
+    if (!value) return;
+    const key = value.toLocaleLowerCase();
+    if (!seen.has(key)) seen.set(key, value);
+  });
+  return Array.from(seen.values());
+}
+
+function getFastInputSource(field) {
+  const remote = loadIssuanceCache();
+  return uniqueNonEmptyValues(remote, field);
+}
+
+const FAST_INPUT_FIELDS = {
+  fieldBeneficiary: { source: 'beneficiary', options: 'optionsBeneficiary' },
+  fieldAddress:     { source: 'address',     options: 'optionsAddress' },
+  fieldClaimant:    { source: 'claimant',    options: 'optionsClaimant' },
+  fieldRelation:    { source: 'relation',    options: 'optionsRelation' },
+  fieldReason:      { source: 'reason',      options: 'optionsReason' },
+  fieldAid:         { source: 'aid',         options: 'optionsAid' },
+  fieldOrgName:     { source: 'orgName',     options: 'optionsOrgName' },
+  fieldOrgSub:      { source: 'orgSub',      options: 'optionsOrgSub' },
+  fieldOrgExtra:    { source: 'orgExtra',    options: 'optionsOrgExtra' }
+};
+
+const comboState = new Map();
+
+function closeAllFastInputs(exceptId = null) {
+  document.querySelectorAll('.combo-options.open').forEach(el => {
+    if (el.id !== exceptId) el.classList.remove('open');
+  });
+}
+
+function renderFastInputOptions(fieldId, forceAll = false) {
+  const cfg = FAST_INPUT_FIELDS[fieldId];
+  if (!cfg) return;
+  const input = document.getElementById(fieldId);
+  const box = document.getElementById(cfg.options);
+  if (!input || !box) return;
+
+  const values = getFastInputSource(cfg.source);
+  const query = normalizeSuggestedValue(input.value).toLocaleLowerCase();
+  const filtered = values
+    .filter(value => forceAll || !query || value.toLocaleLowerCase().includes(query))
+    .sort((a,b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  comboState.set(fieldId, filtered);
+
+  if (!filtered.length) {
+    box.innerHTML = '<div class="combo-empty">No saved values found.</div>';
+    box.classList.add('open');
+    return;
+  }
+
+  box.innerHTML = filtered.slice(0, 30).map((value, index) => {
+    const safe = escapeHtml(value);
+    const count = values.length;
+    const suffix = count > 30 ? ` · showing first 30 of ${count}` : '';
+    return `<div class="combo-option" data-index="${index}" title="${safe}">
+      <span class="combo-main">${safe}</span>
+      ${suffix ? `<span class="combo-meta">${escapeHtml(suffix)}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  box.classList.add('open');
+}
+
+function selectFastInputValue(fieldId, index) {
+  const values = comboState.get(fieldId) || [];
+  const value = values[index];
+  const input = document.getElementById(fieldId);
+  const cfg = FAST_INPUT_FIELDS[fieldId];
+  if (!input || !cfg || value == null) return;
+  input.value = value;
+  document.getElementById(cfg.options)?.classList.remove('open');
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+  showToast('✅ Selected saved value');
+}
+
+function initFastInputCombos() {
+  Object.keys(FAST_INPUT_FIELDS).forEach(fieldId => {
+    const cfg = FAST_INPUT_FIELDS[fieldId];
+    const input = document.getElementById(fieldId);
+    const box = document.getElementById(cfg.options);
+    if (!input || !box) return;
+
+    input.addEventListener('focus', () => renderFastInputOptions(fieldId, true));
+    input.addEventListener('input', () => renderFastInputOptions(fieldId, false));
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        box.classList.remove('open');
+        return;
+      }
+      if (e.key === 'ArrowDown' && box.classList.contains('open')) {
+        e.preventDefault();
+        const first = box.querySelector('.combo-option');
+        first?.focus?.();
+      }
+    });
+
+    box.addEventListener('mousedown', e => {
+      const option = e.target.closest('.combo-option');
+      if (!option) return;
+      e.preventDefault();
+      selectFastInputValue(fieldId, Number(option.dataset.index));
+    });
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.combo-wrap')) closeAllFastInputs();
+  });
+}
+
+function refreshFastInputCombos() {
+  Object.keys(FAST_INPUT_FIELDS).forEach(fieldId => {
+    const box = document.getElementById(FAST_INPUT_FIELDS[fieldId].options);
+    if (box?.classList.contains('open')) renderFastInputOptions(fieldId, false);
+  });
 }
 
 // Builds a readable error from a failed JSONBin response instead of just the
@@ -748,6 +933,7 @@ async function refreshIssuanceList() {
     const remote = await fetchIssuancesFromJSONBin();
     storeIssuanceCache(remote);
     renderIssuances(remote);
+    refreshFastInputCombos();
   } catch (e) {
     console.warn(e);
     const cached = loadIssuanceCache();
@@ -807,6 +993,7 @@ async function saveIssuanceFinal(data) {
     await saveIssuancesToJSONBin(merged);
     storePendingIssuances([]);
     storeIssuanceCache(merged);
+    refreshFastInputCombos();
     return issuance;
   } catch (e) {
     const pending = loadPendingIssuances();
@@ -819,6 +1006,7 @@ async function saveIssuanceFinal(data) {
 
 renderDrafts();
 renderIssuances(loadIssuanceCache());
+initFastInputCombos();
 
 // ── QR ─────────────────────────────────────────────────────────────────────
 function buildQRText(d) {
