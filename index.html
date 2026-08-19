@@ -275,26 +275,6 @@
   <h2>Fill in the Information</h2>
   <p class="subtitle" id="formSubtitle">Fill in all required fields to generate the authorization letter.</p>
 
-  <div class="section-label">📋 Letter Heading</div>
-  <div class="form-row full">
-    <div class="field">
-      <label>Organization / Office Name <span class="required">*</span></label>
-      <input type="text" id="fieldOrgName" value="RESIDENT OF BARANGAY LUMBO">
-    </div>
-  </div>
-  <div class="form-row full">
-    <div class="field">
-      <label>Sub-heading / Address Line</label>
-      <input type="text" id="fieldOrgSub" value="Municipality of Lagonglong Misamis Oriental">
-    </div>
-  </div>
-  <div class="form-row full">
-    <div class="field">
-      <label>Additional Heading Line (optional)</label>
-      <input type="text" id="fieldOrgExtra" placeholder="e.g. Barangay Captain's Office">
-    </div>
-  </div>
-
   <div class="section-label" style="margin-top:10px;">📝 Letter Details</div>
   <div class="form-row">
     <div class="field">
@@ -339,7 +319,25 @@
       <input type="text" id="fieldAid" value="hinabang nga bugas gikan sa &quot;Bawat Bayan Makikinabang&quot; government program">
     </div>
   </div>
-
+  <div class="section-label">📋 Letter Heading</div>
+  <div class="form-row full">
+    <div class="field">
+      <label>Organization / Office Name <span class="required">*</span></label>
+      <input type="text" id="fieldOrgName" value="RESIDENT OF BARANGAY LUMBO">
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label>Sub-heading / Address Line</label>
+      <input type="text" id="fieldOrgSub" value="Municipality of Lagonglong Misamis Oriental">
+    </div>
+  </div>
+  <div class="form-row full">
+    <div class="field">
+      <label>Additional Heading Line (optional)</label>
+      <input type="text" id="fieldOrgExtra" placeholder="e.g. Barangay Captain's Office">
+    </div>
+  </div>
   <div class="btn-row">
     <button class="save-btn" onclick="saveDraft()">💾 Save</button>
     <button class="generate-btn" onclick="generateLetter()">⬇ Generate Letter</button>
