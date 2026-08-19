@@ -470,6 +470,7 @@ const LANGS = {
     lbl_reason: 'Rason sa Pagkawala',
     lbl_aid: 'Klase sa Tabang / Hinabang',
     aidDefault: 'hinabang nga bugas gikan sa "Bawat Bayan Makikinabang" government program',
+    reasonDefault: 'Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho.',
     reasonPlaceholder: 'Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho.',
     letterTitle: 'Authorization Letter',
     dateLabel: 'Date:',
@@ -490,6 +491,7 @@ const LANGS = {
     lbl_reason: 'Dahilan ng Kawalan',
     lbl_aid: 'Uri ng Tulong / Ayuda',
     aidDefault: 'tulong na bigas mula sa programang pamahalaang "Bawat Bayan Makikinabang"',
+    reasonDefault: 'Hindi ko personal na makuha ang nasabing tulong dahil sa aking mga obligasyon sa trabaho.',
     reasonPlaceholder: 'Hindi ko personal na makuha ang nasabing tulong dahil sa aking mga obligasyon sa trabaho.',
     letterTitle: 'Sulat ng Pahintulot',
     dateLabel: 'Petsa:',
@@ -510,6 +512,7 @@ const LANGS = {
     lbl_reason: 'Reason for Absence',
     lbl_aid: 'Type of Aid / Assistance',
     aidDefault: 'rice assistance from the "Bawat Bayan Makikinabang" government program',
+    reasonDefault: 'I cannot personally claim the said assistance due to my work obligations.',
     reasonPlaceholder: 'I cannot personally claim the said assistance due to my work obligations.',
     letterTitle: 'Authorization Letter',
     dateLabel: 'Date:',
@@ -548,12 +551,22 @@ function setLang(lang) {
   setLabel('lbl_reason', L.lbl_reason);
   setLabel('lbl_aid',    L.lbl_aid);
 
-  document.getElementById('fieldReason').placeholder = L.reasonPlaceholder;
+  // Translate the Reason for Absence input when switching languages.
+  // Only replace it when it is one of the built-in language defaults,
+  // so custom user-entered text is preserved.
+  const reasonField = document.getElementById('fieldReason');
+  const reasonDefaults = Object.values(LANGS).map(l => l.reasonDefault);
+  if (reasonDefaults.includes(reasonField.value.trim()) || reasonField.value.trim() === '') {
+    reasonField.value = L.reasonDefault;
+  }
+  reasonField.placeholder = L.reasonPlaceholder;
 
-  // Only reset aid field if it still matches one of the defaults
+  // Translate the Type of Aid input when switching languages.
+  // Only replace it when it is one of the built-in language defaults,
+  // so custom user-entered text is preserved.
   const aidField = document.getElementById('fieldAid');
-  const defaults = Object.values(LANGS).map(l => l.aidDefault);
-  if (defaults.includes(aidField.value.trim()) || aidField.value.trim() === '') {
+  const aidDefaults = Object.values(LANGS).map(l => l.aidDefault);
+  if (aidDefaults.includes(aidField.value.trim()) || aidField.value.trim() === '') {
     aidField.value = L.aidDefault;
   }
 
