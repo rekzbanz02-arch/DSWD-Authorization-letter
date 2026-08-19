@@ -310,7 +310,7 @@
   <div class="form-row full">
     <div class="field">
       <label id="lbl_reason">Reason for Absence <span class="required">*</span></label>
-      <input id="fieldReason" value="Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho."></textarea>
+      <input type="text" id="fieldReason" value="Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho.">
     </div>
   </div>
   <div class="form-row full">
@@ -383,7 +383,7 @@
 <script>
 // ── JSONBin storage configuration ────────────────────────────────────────────
 const JSONBIN_BIN_ID = '6a85a196f5f4af5e292873d9';
-const JSONBIN_MASTER_KEY = '$2a$10$QRwVf3OgkrsAGNkRCagouRebBADnAcFGs/l8ZzN8YICcI7/NCaf3Ia';
+const JSONBIN_MASTER_KEY = '$2a$10$QRwVf3OgkrsAGNkRCgouRebBADnAcFGs/l8ZzN8YICcI7/NCaf3Ia';
 const JSONBIN_API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 const ISSUANCE_CACHE_KEY = 'dswd_auth_issuances';
 const ISSUANCE_PENDING_KEY = 'dswd_auth_pending_issuances';
@@ -414,28 +414,81 @@ function normalizeBinPayload(payload) {
   return [];
 }
 
+// Builds a readable error from a failed JSONBin response instead of just the
+// status code, so failures are diagnosable from the toast/console instead of
+// silently falling back to "local only" with no clue why.
+async function jsonBinErrorFromResponse(response, label) {
+  let detail = '';
+  try {
+    const body = await response.clone().json();
+    detail = body?.message || JSON.stringify(body);
+  } catch (e) {
+    try { detail = await response.clone().text(); } catch (e2) { /* ignore */ }
+  }
+  let hint = '';
+  if (response.status === 401 || response.status === 403) {
+    hint = ' — check that JSONBIN_MASTER_KEY exactly matches the key on your JSONBin API Keys page (no missing/extra characters).';
+  } else if (response.status === 404) {
+    hint = ' — check that JSONBIN_BIN_ID exists and belongs to this API key.';
+  } else if (response.status === 400 && /size|limit/i.test(detail)) {
+    hint = ' — the bin may have exceeded the free-plan 100KB size limit.';
+  }
+  return new Error(`${label} failed (${response.status})${detail ? ': ' + detail : ''}${hint}`);
+}
+
 async function fetchIssuancesFromJSONBin() {
-  const response = await fetch(`${JSONBIN_API_URL}/latest`, {
-    headers: { 'X-Master-Key': JSONBIN_MASTER_KEY }
-  });
-  if (!response.ok) throw new Error(`JSONBin read failed (${response.status})`);
+  let response;
+  try {
+    response = await fetch(`${JSONBIN_API_URL}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_MASTER_KEY }
+    });
+  } catch (networkErr) {
+    // fetch() itself threw: DNS/offline/CORS-blocked, not an HTTP error from JSONBin.
+    throw new Error(`JSONBin read: network/CORS error — ${networkErr.message}. If you're opening this file directly (file://), try serving it over http(s) instead.`);
+  }
+  if (!response.ok) throw await jsonBinErrorFromResponse(response, 'JSONBin read');
   const json = await response.json();
   return normalizeBinPayload(json?.record);
 }
 
 async function saveIssuancesToJSONBin(issuances) {
-  const response = await fetch(JSONBIN_API_URL, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Master-Key': JSONBIN_MASTER_KEY,
-      'X-Bin-Versioning': 'false'
-    },
-    body: JSON.stringify({ issuances })
-  });
-  if (!response.ok) throw new Error(`JSONBin write failed (${response.status})`);
+  let response;
+  try {
+    response = await fetch(JSONBIN_API_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_MASTER_KEY,
+        'X-Bin-Versioning': 'false'
+      },
+      body: JSON.stringify({ issuances })
+    });
+  } catch (networkErr) {
+    throw new Error(`JSONBin write: network/CORS error — ${networkErr.message}. If you're opening this file directly (file://), try serving it over http(s) instead.`);
+  }
+  if (!response.ok) throw await jsonBinErrorFromResponse(response, 'JSONBin write');
   return response.json();
 }
+
+// Call testJsonBinConnection() from the browser DevTools console at any time
+// to check the JSONBin credentials/connectivity without going through the
+// whole "fill form → generate → print" flow.
+async function testJsonBinConnection() {
+  console.log('Testing JSONBin connection…', { bin: JSONBIN_BIN_ID });
+  try {
+    const data = await fetchIssuancesFromJSONBin();
+    console.log('✅ JSONBin read OK. Records found:', data.length);
+    try {
+      await saveIssuancesToJSONBin(data);
+      console.log('✅ JSONBin write OK. Credentials and bin are working correctly.');
+    } catch (writeErr) {
+      console.error('❌ JSONBin write failed:', writeErr.message);
+    }
+  } catch (readErr) {
+    console.error('❌ JSONBin read failed:', readErr.message);
+  }
+}
+window.testJsonBinConnection = testJsonBinConnection;
 
 async function syncPendingIssuances() {
   const pending = loadPendingIssuances();
@@ -853,8 +906,12 @@ async function printAndSaveIssuance() {
     showToast('✅ Issuance saved to JSONBin. Opening print…');
     setTimeout(() => window.print(), 250);
   } catch (e) {
-    console.error(e);
-    showToast('⚠️ Saved locally; JSONBin sync failed. Opening print…');
+    console.error('JSONBin save failed:', e);
+    // Show the real reason (truncated) instead of a generic message, so the
+    // failure is diagnosable from the toast alone. Full detail is always in
+    // the console. Run testJsonBinConnection() in DevTools for a full check.
+    const reason = (e && e.message) ? e.message.slice(0, 90) : 'unknown error';
+    showToast('⚠️ Saved locally only — ' + reason);
     setTimeout(() => window.print(), 250);
   }
 }
