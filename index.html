@@ -89,6 +89,36 @@
   .draft-item .draft-del:hover { color: #ff6464; }
   .no-drafts { color: rgba(255,255,255,0.35); font-size: 0.82rem; text-align: center; padding: 12px; }
 
+  /* ISSUANCE HISTORY */
+  .issuance-bar { width: 100%; max-width: 600px; margin-top: 18px; animation: fadeDown 0.7s ease 0.15s both; }
+  .issuance-bar summary {
+    cursor: pointer; background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(201,168,76,0.25); border-radius: 4px;
+    padding: 10px 18px; color: var(--gold-light); font-size: 0.82rem;
+    font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    list-style: none; display: flex; align-items: center; gap: 8px; user-select: none;
+  }
+  .issuance-bar summary::-webkit-details-marker { display: none; }
+  .issuance-bar summary::before { content: '📑'; font-size: 1rem; }
+  .issuance-list {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(201,168,76,0.18);
+    border-top: none; border-radius: 0 0 4px 4px; padding: 10px; max-height: 280px; overflow-y: auto;
+  }
+  .issuance-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 9px 10px; border-radius: 3px; cursor: pointer;
+    transition: background 0.15s; border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .issuance-item:last-child { border-bottom: none; }
+  .issuance-item:hover { background: rgba(201,168,76,0.12); }
+  .issuance-name { color: var(--cream); font-size: 0.86rem; font-weight: 600; flex: 1; }
+  .issuance-claimant { color: rgba(255,255,255,0.65); font-size: 0.78rem; flex: 1; }
+  .issuance-date { color: rgba(255,255,255,0.45); font-size: 0.73rem; white-space: nowrap; }
+  .issuance-loading, .no-issuances { color: rgba(255,255,255,0.35); font-size: 0.82rem; text-align: center; padding: 12px; }
+  @media print {
+    .issuance-bar { display: none !important; }
+  }
+
   /* INPUT CARD */
   .input-card {
     background: var(--cream); border-radius: 4px; padding: 44px 48px;
@@ -232,6 +262,14 @@
   <div class="drafts-list" id="draftsList"></div>
 </details>
 
+<!-- Saved Issuances -->
+<details class="issuance-bar" id="issuanceBar">
+  <summary>Issuance List</summary>
+  <div class="issuance-list" id="issuanceList">
+    <div class="no-issuances">Loading issuances...</div>
+  </div>
+</details>
+
 <!-- INPUT FORM -->
 <div class="input-card" id="inputSection">
   <h2>Fill in the Information</h2>
@@ -292,13 +330,13 @@
   <div class="form-row full">
     <div class="field">
       <label id="lbl_reason">Reason for Absence <span class="required">*</span></label>
-      <textarea id="fieldReason" placeholder="e.g. I cannot personally claim due to work obligations."></textarea>
+      <textarea id="fieldReason" placeholder="Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho."></textarea>
     </div>
   </div>
   <div class="form-row full">
     <div class="field">
       <label id="lbl_aid">Type of Aid / Assistance <span class="required">*</span></label>
-      <input type="text" id="fieldAid" value="rice assistance from the Department of Social Welfare and Development (DSWD)">
+      <input type="text" id="fieldAid" value="hinabang nga bugas gikan sa &quot;Bawat Bayan Makikinabang&quot; government program">
     </div>
   </div>
 
@@ -313,7 +351,7 @@
   <div class="letter-actions">
     <span class="lang-badge" id="letterLangBadge">🇵🇭 Cebuano</span>
     <button class="btn btn-back" onclick="goBack()">← Back / Edit</button>
-    <button class="btn btn-print" onclick="window.print()">🖨 Print Letter</button>
+    <button class="btn btn-print" onclick="printAndSaveIssuance()">🖨 Print Letter</button>
   </div>
   <div class="letter-paper">
     <div class="letter-header-block">
@@ -345,6 +383,80 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ── JSONBin storage configuration ────────────────────────────────────────────
+const JSONBIN_BIN_ID = '6a85a196f5f4af5e292873d9';
+const JSONBIN_MASTER_KEY = '$2a$10$QRwVf3OgkrsAGNkRCagouRebBADnAcFGs/l8ZzN8YICcI7/NCaf3Ia';
+const JSONBIN_API_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+const ISSUANCE_CACHE_KEY = 'dswd_auth_issuances';
+const ISSUANCE_PENDING_KEY = 'dswd_auth_pending_issuances';
+
+function issuanceKey(d) {
+  const raw = [d.date, d.beneficiary, d.claimant, d.address, d.relation, d.aid, d.reason, d.orgName, d.orgSub, d.orgExtra].join('|').toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < raw.length; i++) hash = ((hash << 5) - hash + raw.charCodeAt(i)) | 0;
+  return `iss-${Math.abs(hash)}-${d.date || 'nodate'}`;
+}
+
+function loadIssuanceCache() {
+  try { return JSON.parse(localStorage.getItem(ISSUANCE_CACHE_KEY)) || []; } catch (e) { return []; }
+}
+function storeIssuanceCache(list) {
+  localStorage.setItem(ISSUANCE_CACHE_KEY, JSON.stringify(list));
+}
+function loadPendingIssuances() {
+  try { return JSON.parse(localStorage.getItem(ISSUANCE_PENDING_KEY)) || []; } catch (e) { return []; }
+}
+function storePendingIssuances(list) {
+  localStorage.setItem(ISSUANCE_PENDING_KEY, JSON.stringify(list));
+}
+
+function normalizeBinPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.issuances)) return payload.issuances;
+  return [];
+}
+
+async function fetchIssuancesFromJSONBin() {
+  const response = await fetch(`${JSONBIN_API_URL}/latest`, {
+    headers: { 'X-Master-Key': JSONBIN_MASTER_KEY }
+  });
+  if (!response.ok) throw new Error(`JSONBin read failed (${response.status})`);
+  const json = await response.json();
+  return normalizeBinPayload(json?.record);
+}
+
+async function saveIssuancesToJSONBin(issuances) {
+  const response = await fetch(JSONBIN_API_URL, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': JSONBIN_MASTER_KEY,
+      'X-Bin-Versioning': 'false'
+    },
+    body: JSON.stringify({ issuances })
+  });
+  if (!response.ok) throw new Error(`JSONBin write failed (${response.status})`);
+  return response.json();
+}
+
+async function syncPendingIssuances() {
+  const pending = loadPendingIssuances();
+  if (!pending.length) return;
+  try {
+    const remote = await fetchIssuancesFromJSONBin();
+    const map = new Map(remote.map(item => [item.issuanceId || issuanceKey(item), item]));
+    pending.forEach(item => map.set(item.issuanceId || issuanceKey(item), item));
+    const merged = Array.from(map.values()).sort((a, b) =>
+      String(b.savedAt || '').localeCompare(String(a.savedAt || ''))
+    );
+    await saveIssuancesToJSONBin(merged);
+    storePendingIssuances([]);
+    storeIssuanceCache(merged);
+  } catch (e) {
+    console.warn('Pending issuance sync failed:', e);
+  }
+}
+
 // ── Language templates ─────────────────────────────────────────────────────
 const LANGS = {
   ceb: {
@@ -357,7 +469,7 @@ const LANGS = {
     lbl_rel: 'Relasyon ngadto sa Benepisyaryo',
     lbl_reason: 'Rason sa Pagkawala',
     lbl_aid: 'Klase sa Tabang / Hinabang',
-    aidDefault: 'hinabang nga bugas gikan sa Department of Social Welfare and Development (DSWD)',
+    aidDefault: 'hinabang nga bugas gikan sa "Bawat Bayan Makikinabang" government program',
     reasonPlaceholder: 'Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho.',
     letterTitle: 'Authorization Letter',
     dateLabel: 'Date:',
@@ -377,7 +489,7 @@ const LANGS = {
     lbl_rel: 'Relasyon sa Benepisyaryo',
     lbl_reason: 'Dahilan ng Kawalan',
     lbl_aid: 'Uri ng Tulong / Ayuda',
-    aidDefault: 'tulong na bigas mula sa Department of Social Welfare and Development (DSWD)',
+    aidDefault: 'tulong na bigas mula sa programang pamahalaang "Bawat Bayan Makikinabang"',
     reasonPlaceholder: 'Hindi ko personal na makuha ang nasabing tulong dahil sa aking mga obligasyon sa trabaho.',
     letterTitle: 'Sulat ng Pahintulot',
     dateLabel: 'Petsa:',
@@ -397,7 +509,7 @@ const LANGS = {
     lbl_rel: 'Relation to Beneficiary',
     lbl_reason: 'Reason for Absence',
     lbl_aid: 'Type of Aid / Assistance',
-    aidDefault: 'rice assistance from the Department of Social Welfare and Development (DSWD)',
+    aidDefault: 'rice assistance from the "Bawat Bayan Makikinabang" government program',
     reasonPlaceholder: 'I cannot personally claim the said assistance due to my work obligations.',
     letterTitle: 'Authorization Letter',
     dateLabel: 'Date:',
@@ -543,22 +655,135 @@ function renderDrafts() {
   `).join('');
 }
 
+function renderIssuances(list) {
+  const el = document.getElementById('issuanceList');
+  if (!list.length) {
+    el.innerHTML = '<div class="no-issuances">No issuances saved yet.</div>';
+    return;
+  }
+  el.innerHTML = list.map(item => `
+    <div class="issuance-item" onclick="loadIssuance('${encodeURIComponent(item.issuanceId || issuanceKey(item))}')">
+      <span class="issuance-name">📄 ${escapeHtml(item.beneficiary || '')}</span>
+      <span class="issuance-claimant">→ ${escapeHtml(item.claimant || '')}</span>
+      <span class="issuance-date">${escapeHtml(formatDate(item.date || ''))}</span>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+
+async function refreshIssuanceList() {
+  const list = document.getElementById('issuanceList');
+  list.innerHTML = '<div class="issuance-loading">Loading issuances...</div>';
+  try {
+    await syncPendingIssuances();
+    const remote = await fetchIssuancesFromJSONBin();
+    storeIssuanceCache(remote);
+    renderIssuances(remote);
+  } catch (e) {
+    console.warn(e);
+    const cached = loadIssuanceCache();
+    renderIssuances(cached);
+    showToast('⚠️ Using locally cached issuance list.');
+  }
+}
+
+async function loadIssuance(idEncoded) {
+  const id = decodeURIComponent(idEncoded);
+  try {
+    await syncPendingIssuances();
+    const remote = await fetchIssuancesFromJSONBin();
+    storeIssuanceCache(remote);
+    const item = remote.find(x => (x.issuanceId || issuanceKey(x)) === id);
+    if (!item) throw new Error('Issuance not found.');
+    restoreFields(item);
+    document.getElementById('issuanceBar').removeAttribute('open');
+    showToast('📂 Issuance loaded: ' + item.beneficiary);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) {
+    const cached = loadIssuanceCache();
+    const item = cached.find(x => (x.issuanceId || issuanceKey(x)) === id);
+    if (item) {
+      restoreFields(item);
+      document.getElementById('issuanceBar').removeAttribute('open');
+      showToast('📂 Issuance loaded from cache: ' + item.beneficiary);
+    } else {
+      showToast('⚠️ Could not load issuance.');
+    }
+  }
+}
+
+async function saveIssuanceFinal(data) {
+  const issuance = {
+    ...data,
+    issuanceId: issuanceKey(data),
+    savedAt: new Date().toISOString()
+  };
+
+  // Keep local cache and pending queue aligned so failed remote writes don't create duplicates.
+  const cached = loadIssuanceCache();
+  const cacheMap = new Map(cached.map(item => [item.issuanceId || issuanceKey(item), item]));
+  cacheMap.set(issuance.issuanceId, issuance);
+  const localMerged = Array.from(cacheMap.values()).sort((a, b) =>
+    String(b.savedAt || '').localeCompare(String(a.savedAt || ''))
+  );
+  storeIssuanceCache(localMerged);
+
+  try {
+    const remote = await fetchIssuancesFromJSONBin();
+    const remoteMap = new Map(remote.map(item => [item.issuanceId || issuanceKey(item), item]));
+    remoteMap.set(issuance.issuanceId, issuance);
+    const merged = Array.from(remoteMap.values()).sort((a, b) =>
+      String(b.savedAt || '').localeCompare(String(a.savedAt || ''))
+    );
+    await saveIssuancesToJSONBin(merged);
+    storePendingIssuances([]);
+    storeIssuanceCache(merged);
+    return issuance;
+  } catch (e) {
+    const pending = loadPendingIssuances();
+    const pendingMap = new Map(pending.map(item => [item.issuanceId || issuanceKey(item), item]));
+    pendingMap.set(issuance.issuanceId, issuance);
+    storePendingIssuances(Array.from(pendingMap.values()));
+    throw e;
+  }
+}
+
 renderDrafts();
+renderIssuances(loadIssuanceCache());
 
 // ── QR ─────────────────────────────────────────────────────────────────────
 function buildQRText(d) {
-  return ['AUTHORIZATION LETTER', 'Beneficiary: '+d.beneficiary, 'Address: '+d.address,
-    'Claimant: '+d.claimant+' ('+d.relation+')', 'Aid: '+d.aid,
-    'Date: '+formatDate(d.date), 'Language: '+(LANGS[d.lang]||LANGS.ceb).name].join('\n');
+  return [
+    'AUTHORIZATION LETTER',
+    'Beneficiary: ' + d.beneficiary,
+    'Address: ' + d.address,
+    'Claimant: ' + d.claimant + ' (' + d.relation + ')',
+    'Aid: ' + d.aid,
+    'Date: ' + formatDate(d.date)
+  ].join('\n');
 }
 
 function generateQR(text) {
   const el = document.getElementById('qrcode');
   el.innerHTML = '';
-  new QRCode(el, { text, width:90, height:90, colorDark:'#1a2744', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  new QRCode(el, {
+    text,
+    width: 90,
+    height: 90,
+    colorDark: '#1a2744',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
 }
 
 // ── Generate Letter ────────────────────────────────────────────────────────
+let currentIssuance = null;
+
 function generateLetter() {
   const d = collectFields();
   if (!d.date || !d.beneficiary || !d.address || !d.claimant || !d.relation || !d.reason || !d.aid) {
@@ -566,6 +791,7 @@ function generateLetter() {
     return;
   }
 
+  currentIssuance = d;
   const L = LANGS[d.lang] || LANGS.ceb;
 
   // Header
@@ -584,38 +810,126 @@ function generateLetter() {
   document.getElementById('outPara1').innerHTML = L.para1(d);
   document.getElementById('outPara2').innerHTML = L.para2(d);
   document.getElementById('outPara3').innerHTML = L.para3(d);
-  document.getElementById('outClosing').textContent     = L.closing;
+  document.getElementById('outClosing').textContent = L.closing;
 
-  // Sig
+  // Signature
   document.getElementById('outBeneficiarySig').textContent = d.beneficiary;
-  document.getElementById('outSigRole').textContent        = L.sigRole;
+  document.getElementById('outSigRole').textContent = L.sigRole;
 
-  // Lang badge
+  // Language badge
   document.getElementById('letterLangBadge').textContent = L.flag + ' ' + L.name;
 
-  // QR
+  // QR contains the requested verification text directly.
   generateQR(buildQRText(d));
 
   // Switch views
   document.getElementById('inputSection').style.display  = 'none';
   document.getElementById('draftsBar').style.display     = 'none';
+  document.getElementById('issuanceBar').style.display   = 'none';
   document.querySelector('.portal-header').style.display = 'none';
   document.querySelector('.lang-switcher').style.display = 'none';
   document.getElementById('letterSection').style.display = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+async function printAndSaveIssuance() {
+  const d = currentIssuance || collectFields();
+  if (!d || !d.beneficiary) return;
+
+  try {
+    const saved = await saveIssuanceFinal(d);
+    currentIssuance = saved;
+    showToast('✅ Issuance saved to JSONBin. Opening print…');
+    setTimeout(() => window.print(), 250);
+  } catch (e) {
+    console.error(e);
+    showToast('⚠️ Saved locally; JSONBin sync failed. Opening print…');
+    setTimeout(() => window.print(), 250);
+  }
+}
+
 function goBack() {
   document.getElementById('letterSection').style.display = 'none';
   document.getElementById('inputSection').style.display  = 'block';
   document.getElementById('draftsBar').style.display     = 'block';
+  document.getElementById('issuanceBar').style.display   = 'block';
   document.querySelector('.portal-header').style.display = 'block';
   document.querySelector('.lang-switcher').style.display = 'flex';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ── QR verification popup ───────────────────────────────────────────────────
+function showQRVerificationPopup(dataText) {
+  const lines = String(dataText || '').split(/\r?\n/).map(s => s.trim());
+  if (lines[0] !== 'AUTHORIZATION LETTER') return false;
+
+  const fields = {};
+  lines.slice(1).forEach(line => {
+    const match = line.match(/^([^:]+):\s*(.*)$/);
+    if (match) fields[match[1]] = match[2];
+  });
+
+  const message = [
+    'AUTHORIZATION LETTER',
+    '',
+    `Beneficiary: ${fields.Beneficiary || ''}`,
+    `Address: ${fields.Address || ''}`,
+    `Claimant: ${fields.Claimant || ''}`,
+    `Aid: ${fields.Aid || ''}`,
+    `Date: ${fields.Date || ''}`
+  ].join('\n');
+
+  const existing = document.getElementById('qrVerificationModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'qrVerificationModal';
+  modal.style.cssText = [
+    'position:fixed','inset:0','z-index:10000','background:rgba(0,0,0,.72)',
+    'display:flex','align-items:center','justify-content:center','padding:20px'
+  ].join(';');
+
+  const card = document.createElement('div');
+  card.style.cssText = [
+    'max-width:520px','width:100%','background:#faf7f0','border:1px solid #d4b87a',
+    'border-radius:8px','padding:28px','box-shadow:0 20px 60px rgba(0,0,0,.5)',
+    'font-family:Source Sans 3,sans-serif','color:#2c2416','white-space:pre-wrap'
+  ].join(';');
+
+  const title = document.createElement('div');
+  title.textContent = 'AUTHORIZATION LETTER';
+  title.style.cssText = 'font-family:Playfair Display,serif;font-size:1.3rem;font-weight:700;color:#1a2744;margin-bottom:18px;text-align:center;';
+
+  const body = document.createElement('div');
+  body.textContent = message;
+  body.style.cssText = 'font-size:.95rem;line-height:1.7;';
+
+  const close = document.createElement('button');
+  close.textContent = 'Close';
+  close.style.cssText = 'margin-top:18px;padding:10px 18px;border:none;border-radius:4px;background:#1a2744;color:#e8cc80;cursor:pointer;font-weight:700;';
+  close.onclick = () => modal.remove();
+
+  card.append(title, body, close);
+  modal.appendChild(card);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+  return true;
+}
+
+function tryHandleQRData() {
+  const params = new URLSearchParams(location.search);
+  const qr = params.get('qr') || params.get('data');
+  if (qr) showQRVerificationPopup(qr);
+}
+
+// Also expose a helper for scanner / camera integrations:
+window.showQRVerificationPopup = showQRVerificationPopup;
+tryHandleQRData();
+
 // Init default lang UI
 setLang('ceb');
+refreshIssuanceList();
+syncPendingIssuances();
 </script>
 </body>
 </html>
