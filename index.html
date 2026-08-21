@@ -1056,6 +1056,7 @@ function buildQRText(d) {
 
 function generateQR(text) {
   const el = document.getElementById('qrcode');
+  if (!el) return;
   el.innerHTML = '';
 
   // If the CDN script failed to load (e.g. no internet — a real possibility
@@ -1067,19 +1068,35 @@ function generateQR(text) {
     return;
   }
 
+  const baseOptions = {
+    text,
+    width: 90,
+    height: 90,
+    colorDark: '#1a2744',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.L
+  };
+
+  // Primary attempt: canvas-based rendering (the library's default).
   try {
-    new QRCode(el, {
-      text,
-      width: 90,
-      height: 90,
-      colorDark: '#1a2744',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.L
-    });
-  } catch (err) {
-    // e.g. "Too long data" if a payload still slips past our trimming above.
-    console.error('QR code generation failed:', err);
-    el.innerHTML = '<div style="font-size:.6rem;line-height:1.3;color:#8b1a1a;max-width:90px;text-align:center;">QR generation failed</div>';
+    new QRCode(el, baseOptions);
+    return;
+  } catch (errCanvas) {
+    console.error('QR generation failed (canvas mode):', errCanvas);
+  }
+
+  // Fallback: canvas.getContext('2d') can come back null in some browsers
+  // and embedded/kiosk WebViews (common on older shop/pisonet PCs), which
+  // crashes the canvas drawing step above. qrcodejs also supports drawing
+  // as inline SVG, which never touches a canvas — try that before giving up.
+  try {
+    el.innerHTML = '';
+    new QRCode(el, { ...baseOptions, useSVG: true });
+    return;
+  } catch (errSvg) {
+    console.error('QR generation failed (SVG fallback):', errSvg);
+    const reason = escapeHtml(String((errSvg && errSvg.message) || errSvg || 'unknown error'));
+    el.innerHTML = `<div style="font-size:.6rem;line-height:1.3;color:#8b1a1a;max-width:90px;text-align:center;">QR generation failed<br>(${reason})</div>`;
   }
 }
 
