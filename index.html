@@ -356,7 +356,7 @@
     <div class="field">
       <label id="lbl_aid">Type of Aid / Assistance <span class="required">*</span></label>
       <div class="combo-wrap">
-        <input type="text" id="fieldAid" value="bugas gikan sa &quot;Bawat Bayan Makikinabang&quot; government rice initiative program" autocomplete="off">
+        <input type="text" id="fieldAid" value="hinabang nga bugas gikan sa &quot;Bawat Bayan Makikinabang&quot; government rice initiative program" autocomplete="off">
         <div class="combo-options" id="optionsAid"></div>
       </div>
     </div>
@@ -705,12 +705,12 @@ const LANGS = {
     lbl_rel: 'Relasyon ngadto sa Benepisyaryo',
     lbl_reason: 'Rason sa Pagkawala',
     lbl_aid: 'Klase sa Tabang / Hinabang',
-    aidDefault: 'bugas gikan sa programa sa gobyerno nga "Bawat Bayan Makikinabang"',
+    aidDefault: 'hinabang nga bugas gikan sa programa sa gobyerno nga "Bawat Bayan Makikinabang"',
     reasonDefault: 'Dili nako personal nga makuha ang maong hinabang tungod sa akong mga obligasyon sa trabaho.',
     reasonPlaceholder: 'Dili nako personal nga makuha ang maong hinabang tungod sa akong mga obligasyon sa trabaho.',
     letterTitle: 'Authorization Letter',
     dateLabel: 'Petsa:',
-    para1: (d) => `Ako, si <strong>${d.beneficiary}</strong>, naa sa hustong pangidaron ug nagpuyo sa <strong>${d.address}</strong>, naghatag og pagtugot sa akong <strong>${d.relation}</strong> nga si <strong>${d.claimant}</strong>, aron mokuha ug modawat alang kanako sa hinabang nga <strong>${d.aid}</strong>.`,
+    para1: (d) => `Ako, si <strong>${d.beneficiary}</strong>, naa sa hustong pangidaron ug nagpuyo sa <strong>${d.address}</strong>, naghatag og pagtugot sa akong <strong>${d.relation}</strong> nga si <strong>${d.claimant}</strong>, aron mokuha ug modawat alang kanako sa <strong>${d.aid}</strong>.`,
     para2: (d) => `${d.reason.endsWith('.') ? d.reason : d.reason + '.'} Busa, gihatagan nako siya og tibuok nga katungod aron modawat sa maong hinabang ug mopirma sa bisan unsa nga kinahanglanon nga mga dokumento labot sa pagkuha niini.`,
     para3: () => `Alang sa pagmatuod, naglakip ko og kopya sa akong valid ID kauban niining sulat pagtugot.`,
     closing: 'Daghang salamat sa inyong konsiderasyon.',
