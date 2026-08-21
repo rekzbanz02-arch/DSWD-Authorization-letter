@@ -301,13 +301,7 @@
   <div class="drafts-list" id="draftsList"></div>
 </details>
 
-<!-- Saved Issuances -->
-<details class="issuance-bar" id="issuanceBar">
-  <summary>Issuance List</summary>
-  <div class="issuance-list" id="issuanceList">
-    <div class="no-issuances">Loading issuances...</div>
-  </div>
-</details>
+
 
 <!-- INPUT FORM -->
 <div class="input-card" id="inputSection">
@@ -415,7 +409,7 @@
   <div class="letter-actions">
     <span class="lang-badge" id="letterLangBadge">🇵🇭 Cebuano</span>
     <button class="btn btn-back" onclick="goBack()">← Back / Edit</button>
-    <button class="btn btn-print" onclick="printAndSaveIssuance()">🖨 Print Letter</button>
+    <button class="btn btn-print" id="btnPrintLetter" onclick="printAndSaveIssuance()">🖨 Print Letter</button>
   </div>
   <div class="letter-paper">
     <div class="letter-header-block">
@@ -445,7 +439,13 @@
 </div>
 
 <div class="toast" id="toast"></div>
-
+<!-- Saved Issuances -->
+<details class="issuance-bar" id="issuanceBar">
+  <summary>Issuance List</summary>
+  <div class="issuance-list" id="issuanceList">
+    <div class="no-issuances">Loading issuances...</div>
+  </div>
+</details>
 <script>
 // ── JSONBin storage configuration ────────────────────────────────────────────
 const JSONBIN_BIN_ID = '6a85a196f5f4af5e292873d9';
@@ -1192,23 +1192,56 @@ function generateLetter() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Guards printAndSaveIssuance() against double-clicks / double-taps on the
+// Print button. Without this, two overlapping calls each do their own
+// fetch-merge-PUT round trip to JSONBin, which is a lost-update race — not
+// a duplicate entry per se (both share the same deterministic issuanceId),
+// but it can still clobber one of the two saves. Simplest fix: only one
+// save can be in flight at a time, and the button is visibly disabled while
+// it runs so it's obvious a second click isn't needed.
+let isSavingIssuance = false;
+
 async function printAndSaveIssuance() {
+  if (isSavingIssuance) return;
+
   const d = currentIssuance || collectFields();
   if (!d || !d.beneficiary) return;
+
+  isSavingIssuance = true;
+  const printBtn = document.getElementById('btnPrintLetter');
+  if (printBtn) { printBtn.disabled = true; printBtn.style.opacity = '0.6'; printBtn.style.cursor = 'default'; }
 
   try {
     const saved = await saveIssuanceFinal(d);
     currentIssuance = saved;
+    // saveIssuanceFinal() already merged this issuance into the cache by its
+    // issuanceId (so re-printing the same letter updates the existing entry
+    // instead of adding a new one) and persisted that deduped list to
+    // localStorage. Re-render the on-screen Issuance List straight from that
+    // same cache now, so the panel reflects the new/updated record right
+    // away instead of only refreshing the next time the page loads or the
+    // panel happens to be reopened.
+    renderIssuances(loadIssuanceCache());
+    refreshFastInputCombos();
     showToast('✅ Issuance saved to JSONBin. Opening print…');
     setTimeout(() => window.print(), 250);
   } catch (e) {
     console.error('JSONBin save failed:', e);
+    // Even when the remote JSONBin write failed, saveIssuanceFinal() still
+    // wrote the deduped local cache (with this issuance queued as pending),
+    // so the visible list should reflect it immediately too — it'll sync to
+    // JSONBin next time refreshIssuanceList()/syncPendingIssuances() runs.
+    renderIssuances(loadIssuanceCache());
+    refreshFastInputCombos();
     // Show the real reason (truncated) instead of a generic message, so the
     // failure is diagnosable from the toast alone. Full detail is always in
     // the console. Run testJsonBinConnection() in DevTools for a full check.
     const reason = (e && e.message) ? e.message.slice(0, 90) : 'unknown error';
     showToast('⚠️ Saved locally only — ' + reason);
     setTimeout(() => window.print(), 250);
+  } finally {
+    isSavingIssuance = false;
+    if (printBtn) { printBtn.disabled = false; printBtn.style.opacity = ''; printBtn.style.cursor = ''; }
   }
 }
 
