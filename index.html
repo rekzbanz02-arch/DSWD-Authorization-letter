@@ -701,16 +701,16 @@ const LANGS = {
     subtitle: 'Pun-a ang tanan nga gikinahanglan nga mga field aron makagama og sulat pagtugot.',
     lbl_ben: 'Ngalan sa Benepisyaryo',
     lbl_addr: 'Adres sa Benepisyaryo',
-    lbl_claim: 'Ngalan sa Kinatawan / Claimant',
+    lbl_claim: 'Ngalan sa Kinatawan',
     lbl_rel: 'Relasyon ngadto sa Benepisyaryo',
     lbl_reason: 'Rason sa Pagkawala',
     lbl_aid: 'Klase sa Tabang / Hinabang',
-    aidDefault: 'hinabang nga bugas gikan sa "Bawat Bayan Makikinabang" government rice initiative program',
+    aidDefault: 'hinabang nga bugas gikan sa programa sa gobyerno nga "Bawat Bayan Makikinabang"',
     reasonDefault: 'Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho.',
     reasonPlaceholder: 'Dili nako makuha nga personal ang maong hinabang tungod sa akong mga obligasyon sa trabaho.',
-    letterTitle: 'Authorization Letter',
-    dateLabel: 'Date:',
-    para1: (d) => `Ako, si <strong>${d.beneficiary}</strong>, anaa sa saktong pangidaron ug nagpuyo sa <strong>${d.address}</strong>, naghatag og pagtugot sa akong <strong>${d.relation}</strong> nga si <strong>${d.claimant}</strong>, sa pagkuha ug pagdawat alang kanako sa <strong>${d.aid}</strong>.`,
+    letterTitle: 'Sulat sa Pagtugot',
+    dateLabel: 'Petsa:',
+    para1: (d) => `Ako, si <strong>${d.beneficiary}</strong>, nga sa hustong pangidaron ug nagpuyo sa <strong>${d.address}</strong>, naghatag og pagtugot sa akong <strong>${d.relation}</strong> nga si <strong>${d.claimant}</strong>, aron mokuha ug modawat alang kanako sa <strong>${d.aid}</strong>.`,
     para2: (d) => `${d.reason.endsWith('.') ? d.reason : d.reason + '.'} Busa, gihatagan nako siya og tibuok nga katungod aron modawat sa maong hinabang ug mopirma sa bisan unsa nga kinahanglanon nga mga dokumento labot sa pagkuha niini.`,
     para3: () => `Alang sa pagmatuod, naglakip ko og kopya sa akong valid ID kauban niining sulat pagtugot.`,
     closing: 'Daghang salamat sa inyong konsiderasyon.',
@@ -722,7 +722,7 @@ const LANGS = {
     subtitle: 'Punan ang lahat ng kinakailangang fields upang makabuo ng sulat ng pahintulot.',
     lbl_ben: 'Pangalan ng Benepisyaryo',
     lbl_addr: 'Tirahan ng Benepisyaryo',
-    lbl_claim: 'Pangalan ng Kinatawan / Claimant',
+    lbl_claim: 'Pangalan ng Kinatawan',
     lbl_rel: 'Relasyon sa Benepisyaryo',
     lbl_reason: 'Dahilan ng Kawalan',
     lbl_aid: 'Uri ng Tulong / Ayuda',
@@ -731,7 +731,7 @@ const LANGS = {
     reasonPlaceholder: 'Hindi ko personal na makuha ang nasabing tulong dahil sa aking mga obligasyon sa trabaho.',
     letterTitle: 'Sulat ng Pahintulot',
     dateLabel: 'Petsa:',
-    para1: (d) => `Ako, si <strong>${d.beneficiary}</strong>, na nasa tamang idad at naninirahan sa <strong>${d.address}</strong>, ay nagbibigay ng pahintulot sa aking <strong>${d.relation}</strong> na si <strong>${d.claimant}</strong>, na kumuha at tumanggap sa aking ngalan ng <strong>${d.aid}</strong>.`,
+    para1: (d) => `Ako, si <strong>${d.beneficiary}</strong>, na nasa tamang idad at naninirahan sa <strong>${d.address}</strong>, ay nagbibigay ng pahintulot sa aking <strong>${d.relation}</strong> na si <strong>${d.claimant}</strong>, upang kumuha at tumanggap sa ngalan ko ng <strong>${d.aid}</strong>.`,
     para2: (d) => `${d.reason.endsWith('.') ? d.reason : d.reason + '.'} Kaya naman, binibigyan ko siya ng buong karapatang tumanggap ng nasabing tulong at pumirma sa anumang kinakailangang dokumento kaugnay ng pagkuha nito.`,
     para3: () => `Bilang patunay, naglakip ako ng kopya ng aking valid ID kasama ang sulat ng pahintulot na ito.`,
     closing: 'Maraming salamat sa inyong pagsasaalang-alang.',
@@ -982,6 +982,7 @@ async function saveIssuanceFinal(data) {
     String(b.savedAt || '').localeCompare(String(a.savedAt || ''))
   );
   storeIssuanceCache(localMerged);
+  renderIssuances(localMerged);
 
   try {
     const remote = await fetchIssuancesFromJSONBin();
@@ -993,6 +994,7 @@ async function saveIssuanceFinal(data) {
     await saveIssuancesToJSONBin(merged);
     storePendingIssuances([]);
     storeIssuanceCache(merged);
+    renderIssuances(merged);
     refreshFastInputCombos();
     return issuance;
   } catch (e) {
@@ -1000,6 +1002,10 @@ async function saveIssuanceFinal(data) {
     const pendingMap = new Map(pending.map(item => [item.issuanceId || issuanceKey(item), item]));
     pendingMap.set(issuance.issuanceId, issuance);
     storePendingIssuances(Array.from(pendingMap.values()));
+    // Even though the remote write failed, the issuance is already saved
+    // locally (localMerged, cached above) — reflect it in the on-page list
+    // right away instead of leaving stale data until the next reload.
+    renderIssuances(localMerged);
     throw e;
   }
 }
